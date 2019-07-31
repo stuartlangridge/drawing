@@ -1,0 +1,72 @@
+name: drawing
+version: git
+adopt-info: drawing
+grade: stable # must be 'stable' to release into candidate/stable channels
+confinement: strict
+base: core18
+
+plugs:
+  gnome-3-32-1804:
+    interface: content
+    target: $SNAP/gnome-platform
+    default-provider: gnome-3-32-1804
+  gtk-3-themes:
+    interface: content
+    target: $SNAP/data-dir/themes
+    default-provider: gtk-common-themes
+  icon-themes:
+    interface: content
+    target: $SNAP/data-dir/icons
+    default-provider: gtk-common-themes
+  sound-themes:
+    interface: content
+    target: $SNAP/data-dir/sounds
+    default-provider: gtk-common-themes
+
+slots:
+  # for GtkApplication registration
+  drawing:
+    interface: dbus
+    bus: session
+    name: com.github.maoschanz.drawing
+
+apps:
+  drawing:
+    command: bin/desktop-launch ${SNAP}/usr/bin/drawing
+    common-id: com.github.maoschanz.drawing.desktop
+    plugs:
+      - desktop
+      - desktop-legacy
+      - gsettings
+      - wayland
+      - x11
+      - home
+    environment:
+      GI_TYPELIB_PATH: $SNAP/usr/lib/girepository-1.0:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/girepository-1.0:$SNAP/gnome-platform/usr/lib/girepository-1.0:$SNAP/gnome-platform/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/girepository-1.0
+      PYTHONPATH: $SNAP/usr/lib/python3/dist-packages:$SNAP/gnome-platform/usr/lib/python3/dist-packages
+
+parts:
+  desktop-gnome-platform:
+    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+    source-subdir: gtk
+    plugin: make
+    make-parameters: ["FLAVOR=gtk3"]
+    build-snaps:
+      - gnome-3-32-1804-sdk/latest/edge
+    override-build: |
+      snapcraftctl build
+      mkdir -pv $SNAPCRAFT_PART_INSTALL/gnome-platform
+  drawing:
+    after: [desktop-gnome-platform]
+    source: .
+    plugin: meson
+    meson-version: "0.50.0"
+    meson-parameters:
+      - --prefix=/snap/drawing/current/usr
+    parse-info: [usr/share/metainfo/com.github.maoschanz.drawing.appdata.xml]
+    organize:
+      snap/drawing/current/usr: usr
+    build-snaps:
+      - gnome-3-32-1804-sdk/latest/edge
+    stage-packages:
+      - python3-cairo
