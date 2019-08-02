@@ -4,12 +4,14 @@ adopt-info: drawing
 grade: stable # must be 'stable' to release into candidate/stable channels
 confinement: strict
 base: core18
+architectures:
+  - build-on: amd64
 
 plugs:
   gnome-3-32-1804:
     interface: content
     target: $SNAP/gnome-platform
-    default-provider: gnome-3-32-1804
+    default-provider: gnome-3-32-1804/latest/edge
   gtk-3-themes:
     interface: content
     target: $SNAP/data-dir/themes
@@ -42,20 +44,28 @@ apps:
       - x11
       - home
     environment:
-      GI_TYPELIB_PATH: $SNAP/usr/lib/girepository-1.0:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/girepository-1.0:$SNAP/gnome-platform/usr/lib/girepository-1.0:$SNAP/gnome-platform/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/girepository-1.0
-      PYTHONPATH: $SNAP/usr/lib/python3/dist-packages:$SNAP/gnome-platform/usr/lib/python3/dist-packages
+      PYTHONPATH: $SNAP/gnome-platform/usr/lib/python3.6/site-packages
+      LD_LIBRARY_PATH: $SNAP/gnome-platform/usr/lib:$LD_LIBRARY_PATH
 
 parts:
   desktop-gnome-platform:
     source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+    source-depth: 1
     source-subdir: gtk
     plugin: make
-    make-parameters: ["FLAVOR=gtk3"]
-    build-snaps:
-      - gnome-3-32-1804-sdk/latest/edge
+    make-parameters: [ "FLAVOR=gtk3" ]
+    build-environment: &buildenv
+      - PATH: /snap/gnome-3-32-1804-sdk/current/usr/bin:$PATH
+      - XDG_DATA_DIRS: /snap/gnome-3-32-1804-sdk/current/usr/share:/usr/share:$XDG_DATA_DIRS
+      - LD_LIBRARY_PATH: /snap/gnome-3-32-1804-sdk/current/lib/$SNAPCRAFT_ARCH_TRIPLET:/snap/gnome-3-32-1804-sdk/current/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:/snap/gnome-3-32-1804-sdk/current/usr/lib:/snap/gnome-3-32-1804-sdk/current/usr/lib/vala-current:$LD_LIBRARY_PATH
+      - PKG_CONFIG_PATH: /snap/gnome-3-32-1804-sdk/current/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pkgconfig:/snap/gnome-3-32-1804-sdk/current/usr/lib/pkgconfig:/snap/gnome-3-32-1804-sdk/current/usr/share/pkgconfig:$PKG_CONFIG_PATH
+      - GETTEXTDATADIRS: /snap/gnome-3-32-1804-sdk/current/usr/share/gettext-current:$GETTEXTDATADIRS
+      - GDK_PIXBUF_MODULE_FILE: /snap/gnome-3-32-1804-sdk/current/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gdk-pixbuf-current/loaders.cache
+    build-snaps: [ gnome-3-32-1804-sdk/latest/edge ]
     override-build: |
       snapcraftctl build
       mkdir -pv $SNAPCRAFT_PART_INSTALL/gnome-platform
+
   drawing:
     after: [desktop-gnome-platform]
     source: .
@@ -66,7 +76,4 @@ parts:
     parse-info: [usr/share/metainfo/com.github.maoschanz.drawing.appdata.xml]
     organize:
       snap/drawing/current/usr: usr
-    build-snaps:
-      - gnome-3-32-1804-sdk/latest/edge
-    stage-packages:
-      - python3-cairo
+    build-environment: *buildenv
