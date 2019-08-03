@@ -36,6 +36,7 @@ apps:
   drawing:
     command: bin/desktop-launch ${SNAP}/usr/bin/drawing
     common-id: com.github.maoschanz.drawing.desktop
+    desktop: usr/share/applications/com.github.maoschanz.drawing.desktop
     plugs:
       - desktop
       - desktop-legacy
@@ -77,3 +78,8 @@ parts:
     organize:
       snap/drawing/current/usr: usr
     build-environment: *buildenv
+    override-build: |
+      sed -i.bak -e 's|Icon=com.github.maoschanz.drawing$|Icon=${SNAP}/meta/gui/com.github.maoschanz.drawing.svg|g' data/com.github.maoschanz.drawing.desktop.in
+      snapcraftctl build
+      mkdir -p $SNAPCRAFT_PART_INSTALL/meta/gui/
+      cp ../src/data/icons/hicolor/scalable/apps/com.github.maoschanz.drawing.svg $SNAPCRAFT_PART_INSTALL/meta/gui/
