@@ -1,0 +1,85 @@
+name: drawing
+version: git
+adopt-info: drawing
+grade: stable # must be 'stable' to release into candidate/stable channels
+confinement: strict
+base: core18
+architectures:
+  - build-on: amd64
+
+plugs:
+  gnome-3-32-1804:
+    interface: content
+    target: $SNAP/gnome-platform
+    default-provider: gnome-3-32-1804
+  gtk-3-themes:
+    interface: content
+    target: $SNAP/data-dir/themes
+    default-provider: gtk-common-themes
+  icon-themes:
+    interface: content
+    target: $SNAP/data-dir/icons
+    default-provider: gtk-common-themes
+  sound-themes:
+    interface: content
+    target: $SNAP/data-dir/sounds
+    default-provider: gtk-common-themes
+
+slots:
+  # for GtkApplication registration
+  drawing:
+    interface: dbus
+    bus: session
+    name: com.github.maoschanz.drawing
+
+apps:
+  drawing:
+    command: bin/desktop-launch ${SNAP}/usr/bin/drawing
+    common-id: com.github.maoschanz.drawing.desktop
+    desktop: usr/share/applications/com.github.maoschanz.drawing.desktop
+    plugs:
+      - desktop
+      - desktop-legacy
+      - gsettings
+      - wayland
+      - x11
+      - home
+    environment:
+      PYTHONPATH: $SNAP/gnome-platform/usr/lib/python3.6/site-packages
+      LD_LIBRARY_PATH: $SNAP/gnome-platform/usr/lib:$LD_LIBRARY_PATH
+
+parts:
+  desktop-gnome-platform:
+    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+    source-depth: 1
+    source-subdir: gtk
+    plugin: make
+    make-parameters: [ "FLAVOR=gtk3" ]
+    build-environment: &buildenv
+      - PATH: /snap/gnome-3-32-1804-sdk/current/usr/bin:$PATH
+      - XDG_DATA_DIRS: /snap/gnome-3-32-1804-sdk/current/usr/share:/usr/share:$XDG_DATA_DIRS
+      - LD_LIBRARY_PATH: /snap/gnome-3-32-1804-sdk/current/lib/$SNAPCRAFT_ARCH_TRIPLET:/snap/gnome-3-32-1804-sdk/current/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:/snap/gnome-3-32-1804-sdk/current/usr/lib:/snap/gnome-3-32-1804-sdk/current/usr/lib/vala-current:$LD_LIBRARY_PATH
+      - PKG_CONFIG_PATH: /snap/gnome-3-32-1804-sdk/current/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pkgconfig:/snap/gnome-3-32-1804-sdk/current/usr/lib/pkgconfig:/snap/gnome-3-32-1804-sdk/current/usr/share/pkgconfig:$PKG_CONFIG_PATH
+      - GETTEXTDATADIRS: /snap/gnome-3-32-1804-sdk/current/usr/share/gettext-current:$GETTEXTDATADIRS
+      - GDK_PIXBUF_MODULE_FILE: /snap/gnome-3-32-1804-sdk/current/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gdk-pixbuf-current/loaders.cache
+    build-snaps: [ gnome-3-32-1804-sdk/latest/edge ]
+    override-build: |
+      snapcraftctl build
+      mkdir -pv $SNAPCRAFT_PART_INSTALL/gnome-platform
+
+  drawing:
+    after: [desktop-gnome-platform]
+    source: .
+    plugin: meson
+    meson-version: "0.50.0"
+    meson-parameters:
+      - --prefix=/snap/drawing/current/usr
+    parse-info: [usr/share/metainfo/com.github.maoschanz.drawing.appdata.xml]
+    organize:
+      snap/drawing/current/usr: usr
+    build-environment: *buildenv
+    override-build: |
+      sed -i.bak -e 's|Icon=com.github.maoschanz.drawing$|Icon=${SNAP}/meta/gui/com.github.maoschanz.drawing.svg|g' data/com.github.maoschanz.drawing.desktop.in
+      snapcraftctl build
+      mkdir -p $SNAPCRAFT_PART_INSTALL/meta/gui/
+      cp ../src/data/icons/hicolor/scalable/apps/com.github.maoschanz.drawing.svg $SNAPCRAFT_PART_INSTALL/meta/gui/
