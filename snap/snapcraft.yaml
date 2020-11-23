@@ -1,0 +1,46 @@
+name: drawing
+adopt-info: drawing
+grade: stable # must be 'stable' to release into candidate/stable channels
+confinement: strict
+base: core18
+architectures:
+  - build-on: amd64
+
+slots:
+  # for GtkApplication registration
+  drawing:
+    interface: dbus
+    bus: session
+    name: com.github.maoschanz.drawing
+
+apps:
+  drawing:
+    command: usr/bin/drawing
+    extensions: [gnome-3-34]
+    common-id: com.github.maoschanz.drawing.desktop
+    desktop: usr/share/applications/com.github.maoschanz.drawing.desktop
+    plugs:
+      - home
+    environment:
+      PYTHONPATH: $SNAP/gnome-platform/usr/lib/python3.6/site-packages
+      LD_LIBRARY_PATH: $SNAP/gnome-platform/usr/lib:$LD_LIBRARY_PATH
+
+parts:
+  drawing:
+    source: .
+    plugin: meson
+    meson-version: "0.50.0"
+    meson-parameters:
+      - --prefix=/snap/drawing/current/usr
+    parse-info: [usr/share/metainfo/com.github.maoschanz.drawing.appdata.xml]
+    organize:
+      snap/drawing/current/usr: usr
+    build-packages: [ git ]
+    build-environment:
+      - PYTHONPATH: /snap/gnome-3-34-1804-sdk/current/usr/lib/python3.6/site-packages
+    override-build: |
+      snapcraftctl set-version $(git describe --tags --abbrev=10)
+      sed -i.bak -e 's|Icon=com.github.maoschanz.drawing$|Icon=${SNAP}/meta/gui/com.github.maoschanz.drawing.svg|g' data/com.github.maoschanz.drawing.desktop.in
+      snapcraftctl build
+      mkdir -p $SNAPCRAFT_PART_INSTALL/meta/gui/
+      cp ../src/data/icons/hicolor/scalable/apps/com.github.maoschanz.drawing.svg $SNAPCRAFT_PART_INSTALL/meta/gui/
