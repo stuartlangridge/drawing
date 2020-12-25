@@ -21,6 +21,7 @@ apps:
     desktop: usr/share/applications/com.github.maoschanz.drawing.desktop
     plugs:
       - home
+      - removable-media
     environment:
       PYTHONPATH: $SNAP/gnome-platform/usr/lib/python3.6/site-packages
       LD_LIBRARY_PATH: $SNAP/gnome-platform/usr/lib:$LD_LIBRARY_PATH
